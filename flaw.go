@@ -23,7 +23,7 @@ type Flaw struct {
 	Records []Record
 }
 
-// Error satisfies error. It returns JSON serialized array of [Flaw/Records].
+// Error satisfies [error]. It returns JSON serialized array of [Flaw].Records.
 func (f *Flaw) Error() string {
 	var builder strings.Builder
 	builder.WriteByte('[')
@@ -39,7 +39,7 @@ func (f *Flaw) Error() string {
 	return builder.String()
 }
 
-// New creates a Flaw instance with a message, and contextual information
+// New creates a [Flaw] instance with a message, and contextual information
 // record embedded into it.
 func New(message string, rec *encoder.Record) *Flaw {
 	return &Flaw{
@@ -52,9 +52,9 @@ func New(message string, rec *encoder.Record) *Flaw {
 	}
 }
 
-// From creates a Flaw instance from an existing error. It appends contextual
-// information to it, if it already contains a Flaw inside (checked using
-// errors.As), or creates a new instance similar to New with message, and
+// From creates a [Flaw] instance from an existing error. It appends contextual
+// information to it, if it already contains a [Flaw] inside (checked using
+// [errors.As]), or creates a new instance similar to [New] with message, and
 // err.Error concatenated together. It panics if err is nil.
 func From(err error, message string, rec *encoder.Record) *Flaw {
 	if nil == err {

@@ -34,7 +34,6 @@ func Dict(key string) *Record {
 
 func JSON(r *Record) []byte {
 	r.buf = enc.AppendEndMarker(r.buf)
-	r.buf = enc.AppendLineBreak(r.buf)
 	return r.buf
 }
 
