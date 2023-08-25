@@ -1,7 +1,6 @@
 package flaw_test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -56,8 +55,8 @@ func requireErrEq(t *testing.T, expectedRecords []ExpectedRecord, f error) {
 func TestNew(t *testing.T) {
 	t.Parallel()
 	f := flaw.New(
+		"failed to connect to database",
 		flaw.Dict("db").
-			Str("error", "failed to connect to database").
 			Str("host", "localhost").
 			Int("port", 5643).
 			Str("username", "root").
@@ -80,9 +79,41 @@ func TestNew(t *testing.T) {
 
 func TestFrom(t *testing.T) {
 	t.Parallel()
-	err := flaw.New(
+	t.Run("Existing", testFromExisting)
+	t.Run("NonExisting", testFromNonExisting)
+}
+
+func testFromNonExisting(t *testing.T) {
+	t.Parallel()
+	err := flaw.From(
+		os.ErrClosed,
+		"failed to connect to database",
 		flaw.Dict("db").
-			Str("error", "failed to connect to database").
+			Str("host", "localhost").
+			Int("port", 5643).
+			Str("username", "root").
+			Str("password", "root"),
+	)
+	expectedRecords := []ExpectedRecord{
+		{
+			Key: "db",
+			Payload: map[string]any{
+				"error":    "failed to connect to database: file already closed",
+				"host":     "localhost",
+				"password": "root",
+				"port":     5643,
+				"username": "root",
+			},
+		},
+	}
+	requireErrEq(t, expectedRecords, err)
+}
+
+func testFromExisting(t *testing.T) {
+	t.Parallel()
+	err := flaw.New(
+		"failed to connect to database",
+		flaw.Dict("db").
 			Str("host", "localhost").
 			Int("port", 5643).
 			Str("username", "root").
@@ -104,8 +135,8 @@ func TestFrom(t *testing.T) {
 
 	err = flaw.From(
 		err,
+		"failed to create user: permission denied",
 		flaw.Dict("api").
-			Err("error", fmt.Errorf("failed to create user: %v", os.ErrPermission)).
 			Str("request_id", "8fbbb51f-6f3a-4c9d-885a-92eb8e09cc31").
 			Str("time", "2023-08-25T04:44:41.059Z").
 			Str("client_ip", "127.0.0.1").

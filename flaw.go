@@ -1,6 +1,7 @@
 package flaw
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/xeptore/flaw/v2/internal/encoder"
@@ -34,30 +35,39 @@ func (f *Flaw) Error() string {
 	return builder.String()
 }
 
-func New(rec *encoder.Record) *Flaw {
+func New(message string, rec *encoder.Record) *Flaw {
 	return &Flaw{
 		Records: []Record{
 			{
 				Key:     rec.Key,
-				Payload: rec.JSON(),
+				Payload: encoder.JSON(encoder.AppendErr(rec, message)),
 			},
 		},
 	}
 }
 
-func From(err error, rec *encoder.Record) *Flaw {
-	if flaw, ok := err.(*Flaw); ok {
+// From creates a [Flaw] instance from an existing error.
+// It is designed to be used in the middle of the application layers where you'd want to attach more info to the error you receive if it is already
+// a [Flaw] error, or you'd want to initialize new one with some contextual info.
+// It also works if [Flaw] is wrapped inside another error, since it uses [errors.As] semantic to extract [Flaw] type error.
+// Although it is not required, but I would highly recommend to include a message,
+func From(err error, message string, rec *encoder.Record) *Flaw {
+	if nil == err {
+		panic("err can not be nil")
+	}
+	if flaw := new(Flaw); errors.As(err, &flaw) {
 		flaw.Records = append(flaw.Records, Record{
 			Key:     rec.Key,
-			Payload: rec.JSON(),
+			Payload: encoder.JSON(encoder.AppendErr(rec, message)),
 		})
 		return flaw
 	}
-	record := Record{
-		Key:     rec.Key,
-		Payload: rec.Err("error", err).JSON(),
-	}
 	return &Flaw{
-		Records: []Record{record},
+		Records: []Record{
+			{
+				Key:     rec.Key,
+				Payload: encoder.JSON(encoder.AppendErr(rec, message+": "+err.Error())),
+			},
+		},
 	}
 }
