@@ -1,45 +1,17 @@
 package flaw
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
 	"strings"
+
+	"github.com/xeptore/flaw/v2/internal/encoder"
 )
 
-type Dict struct {
-	key    string
-	values map[string]any
-}
-
-func Key(key string) *Dict {
-	return &Dict{
-		key:    key,
-		values: make(map[string]any),
-	}
-}
-
-func (d *Dict) Int(key string, value int) *Dict {
-	d.values[key] = value
-	return d
-}
-
-func (d *Dict) Str(key string, value string) *Dict {
-	d.values[key] = value
-	return d
-}
-
-func (d *Dict) json() []byte {
-	b, err := json.Marshal(d.values)
-	if nil != err {
-		_, _ = fmt.Fprintf(os.Stderr, "failed to marshal dict values to json: %v", err)
-	}
-	return b
-}
+var (
+	Dict = encoder.Dict
+)
 
 type Record struct {
 	Key     string
-	Message string
 	Payload []byte
 }
 
@@ -54,7 +26,7 @@ func (f *Flaw) Error() string {
 		if i != 0 {
 			builder.WriteByte(',')
 		}
-		builder.WriteString(`{"message":"` + r.Message + `","key":"` + r.Key + `","payload":`)
+		builder.WriteString(`{"key":"` + r.Key + `","payload":`)
 		builder.Write(r.Payload)
 		builder.WriteString(`}`)
 	}
@@ -62,27 +34,28 @@ func (f *Flaw) Error() string {
 	return builder.String()
 }
 
-func New(message string, dict *Dict) *Flaw {
+func New(rec *encoder.Record) *Flaw {
 	return &Flaw{
 		Records: []Record{
 			{
-				Key:     dict.key,
-				Message: message,
-				Payload: dict.json(),
+				Key:     rec.Key,
+				Payload: rec.JSON(),
 			},
 		},
 	}
 }
 
-func From(err error, message string, dict *Dict) *Flaw {
-	record := Record{
-		Key:     dict.key,
-		Message: message,
-		Payload: dict.json(),
-	}
+func From(err error, rec *encoder.Record) *Flaw {
 	if flaw, ok := err.(*Flaw); ok {
-		flaw.Records = append(flaw.Records, record)
+		flaw.Records = append(flaw.Records, Record{
+			Key:     rec.Key,
+			Payload: rec.JSON(),
+		})
 		return flaw
+	}
+	record := Record{
+		Key:     rec.Key,
+		Payload: rec.Err("error", err).JSON(),
 	}
 	return &Flaw{
 		Records: []Record{record},

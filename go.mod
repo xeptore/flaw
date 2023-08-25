@@ -1,4 +1,4 @@
-module github.com/xeptore/flaw
+module github.com/xeptore/flaw/v2
 
 go 1.21.0
 

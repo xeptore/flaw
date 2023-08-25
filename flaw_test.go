@@ -1,6 +1,8 @@
 package flaw_test
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -8,12 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
 
-	"github.com/xeptore/flaw"
+	"github.com/xeptore/flaw/v2"
 )
 
 type ExpectedRecord struct {
 	Key     string         `json:"key"`
-	Message string         `json:"message"`
 	Payload map[string]any `json:"payload"`
 }
 
@@ -48,7 +49,6 @@ func requireErrEq(t *testing.T, expectedRecords []ExpectedRecord, f error) {
 	require.ErrorAs(t, f, &flawErr)
 	for i, r := range flawErr.Records {
 		require.Exactly(t, expectedRecords[i].Key, r.Key)
-		require.Exactly(t, expectedRecords[i].Message, r.Message)
 		requireJSONEq(t, expectedRecords[i].Payload, r.Payload)
 	}
 }
@@ -56,9 +56,8 @@ func requireErrEq(t *testing.T, expectedRecords []ExpectedRecord, f error) {
 func TestNew(t *testing.T) {
 	t.Parallel()
 	f := flaw.New(
-		"failed to connect to database",
-		flaw.
-			Key("db").
+		flaw.Dict("db").
+			Str("error", "failed to connect to database").
 			Str("host", "localhost").
 			Int("port", 5643).
 			Str("username", "root").
@@ -66,9 +65,9 @@ func TestNew(t *testing.T) {
 	)
 	expectedRecords := []ExpectedRecord{
 		{
-			Key:     "db",
-			Message: "failed to connect to database",
+			Key: "db",
 			Payload: map[string]any{
+				"error":    "failed to connect to database",
 				"host":     "localhost",
 				"password": "root",
 				"port":     5643,
@@ -82,9 +81,8 @@ func TestNew(t *testing.T) {
 func TestFrom(t *testing.T) {
 	t.Parallel()
 	err := flaw.New(
-		"failed to connect to database",
-		flaw.
-			Key("db").
+		flaw.Dict("db").
+			Str("error", "failed to connect to database").
 			Str("host", "localhost").
 			Int("port", 5643).
 			Str("username", "root").
@@ -92,9 +90,9 @@ func TestFrom(t *testing.T) {
 	)
 	expectedRecords := []ExpectedRecord{
 		{
-			Key:     "db",
-			Message: "failed to connect to database",
+			Key: "db",
 			Payload: map[string]any{
+				"error":    "failed to connect to database",
 				"host":     "localhost",
 				"password": "root",
 				"port":     5643,
@@ -106,9 +104,8 @@ func TestFrom(t *testing.T) {
 
 	err = flaw.From(
 		err,
-		"failed to create user",
-		flaw.
-			Key("api").
+		flaw.Dict("api").
+			Err("error", fmt.Errorf("failed to create user: %v", os.ErrPermission)).
 			Str("request_id", "8fbbb51f-6f3a-4c9d-885a-92eb8e09cc31").
 			Str("time", "2023-08-25T04:44:41.059Z").
 			Str("client_ip", "127.0.0.1").
@@ -117,9 +114,9 @@ func TestFrom(t *testing.T) {
 	expectedRecords = append(
 		expectedRecords,
 		ExpectedRecord{
-			Key:     "api",
-			Message: "failed to create user",
+			Key: "api",
 			Payload: map[string]any{
+				"error":       "failed to create user: permission denied",
 				"time":        "2023-08-25T04:44:41.059Z",
 				"request_id":  "8fbbb51f-6f3a-4c9d-885a-92eb8e09cc31",
 				"client_port": 58763,
