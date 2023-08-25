@@ -2,6 +2,7 @@ package flaw
 
 import (
 	"errors"
+	"runtime"
 	"strings"
 
 	"github.com/xeptore/flaw/v2/internal/encoder"
@@ -19,8 +20,15 @@ type Record struct {
 	Payload []byte
 }
 
+type StackTrace struct {
+	Line     int
+	File     string
+	Function string
+}
+
 type Flaw struct {
 	Records []Record
+	Traces  []StackTrace
 }
 
 // Error satisfies [error]. It returns JSON serialized array of [Flaw].Records.
@@ -39,9 +47,27 @@ func (f *Flaw) Error() string {
 	return builder.String()
 }
 
-// New creates a [Flaw] instance with a message, and contextual information
-// record embedded into it.
-func New(message string, rec *encoder.Record) *Flaw {
+func traces() []StackTrace {
+	const depth = 64
+	var pcs [depth]uintptr
+	n := runtime.Callers(3, pcs[:])
+	frames := runtime.CallersFrames(pcs[:n])
+	st := make([]StackTrace, 0, n)
+	for {
+		frame, ok := frames.Next()
+		if !ok {
+			break
+		}
+		st = append(st, StackTrace{
+			Line:     frame.Line,
+			File:     frame.File,
+			Function: frame.Function,
+		})
+	}
+	return st
+}
+
+func newFlawWithoutTrace(message string, rec *encoder.Record) *Flaw {
 	return &Flaw{
 		Records: []Record{
 			{
@@ -49,7 +75,16 @@ func New(message string, rec *encoder.Record) *Flaw {
 				Payload: encoder.JSON(encoder.AppendErr(rec, message)),
 			},
 		},
+		Traces: nil,
 	}
+}
+
+// New creates a [Flaw] instance with a message, and contextual information
+// record embedded into it.
+func New(message string, rec *encoder.Record) *Flaw {
+	f := newFlawWithoutTrace(message, rec)
+	f.Traces = traces()
+	return f
 }
 
 // From creates a [Flaw] instance from an existing error. It appends contextual
@@ -67,5 +102,7 @@ func From(err error, message string, rec *encoder.Record) *Flaw {
 		})
 		return flaw
 	}
-	return New(message+": "+err.Error(), rec)
+	f := newFlawWithoutTrace(message+": "+err.Error(), rec)
+	f.Traces = traces()
+	return f
 }
