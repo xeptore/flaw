@@ -8,9 +8,12 @@ import (
 )
 
 var (
+	// Dict can be used to initialize a JSON object of contextual information record with a key.
 	Dict = encoder.Dict
 )
 
+// Record contains JSON serialized contextual information object, and a key
+// than can be used for logging purposes.
 type Record struct {
 	Key     string
 	Payload []byte
@@ -20,6 +23,7 @@ type Flaw struct {
 	Records []Record
 }
 
+// Error satisfies error. It returns JSON serialized array of [Flaw/Records].
 func (f *Flaw) Error() string {
 	var builder strings.Builder
 	builder.WriteByte('[')
@@ -35,6 +39,8 @@ func (f *Flaw) Error() string {
 	return builder.String()
 }
 
+// New creates a Flaw instance with a message, and contextual information
+// record embedded into it.
 func New(message string, rec *encoder.Record) *Flaw {
 	return &Flaw{
 		Records: []Record{
@@ -46,11 +52,10 @@ func New(message string, rec *encoder.Record) *Flaw {
 	}
 }
 
-// From creates a [Flaw] instance from an existing error.
-// It is designed to be used in the middle of the application layers where you'd want to attach more info to the error you receive if it is already
-// a [Flaw] error, or you'd want to initialize new one with some contextual info.
-// It also works if [Flaw] is wrapped inside another error, since it uses [errors.As] semantic to extract [Flaw] type error.
-// Although it is not required, but I would highly recommend to include a message,
+// From creates a Flaw instance from an existing error. It appends contextual
+// information to it, if it already contains a Flaw inside (checked using
+// errors.As), or creates a new instance similar to New with message, and
+// err.Error concatenated together. It panics if err is nil.
 func From(err error, message string, rec *encoder.Record) *Flaw {
 	if nil == err {
 		panic("err can not be nil")
@@ -62,12 +67,5 @@ func From(err error, message string, rec *encoder.Record) *Flaw {
 		})
 		return flaw
 	}
-	return &Flaw{
-		Records: []Record{
-			{
-				Key:     rec.Key,
-				Payload: encoder.JSON(encoder.AppendErr(rec, message+": "+err.Error())),
-			},
-		},
-	}
+	return New(message+": "+err.Error(), rec)
 }

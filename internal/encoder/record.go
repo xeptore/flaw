@@ -15,6 +15,11 @@ const (
 	errorKey = "error"
 )
 
+// Record is the container for the contextual information JSON object that is
+// attached to a key. You can use method chaining approach to assign key-value
+// pairs to an instance of Record. It does not handle field deduplication,
+// and creates duplicate keys. In this case, many consumers will take the last
+// value, but this is not guaranteed; check yours if in doubt.
 type Record struct {
 	Key string
 	buf []byte
@@ -60,22 +65,7 @@ func (r *Record) Dict(key string, dict *Record) *Record {
 	}
 	dict.buf = enc.AppendEndMarker(dict.buf)
 	r.buf = append(enc.AppendKey(r.buf, key), dict.buf...)
-	putRecord(dict)
 	return r
-}
-
-func putRecord(r *Record) {
-	// Proper usage of a sync.Pool requires each entry to have approximately
-	// the same memory cost. To obtain this property when the stored type
-	// contains a variably-sized buffer, we add a hard limit on the maximum buffer
-	// to place back in the pool.
-	//
-	// See https://golang.org/issue/23199
-	const maxSize = 1 << 16 // 64KiB
-	if cap(r.buf) > maxSize {
-		return
-	}
-	//eventPool.Put(e)
 }
 
 func (r *Record) Float32(key string, f float32) *Record {
@@ -250,6 +240,7 @@ func (r *Record) Strs(key string, vals []string) *Record {
 	return r
 }
 
+// Time appends time in [time.RFC3339] format to record.
 func (r *Record) Time(key string, t time.Time) *Record {
 	if key == errorKey {
 		return r
