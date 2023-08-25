@@ -4,4 +4,4 @@ Go errors with contextual info. Inspired by [`zerolog`](https://github.com/rs/ze
 
 ## Usage
 
-Checkout the [examples](./examples/) directory for usage example with [`zerolog`](https://github.com/rs/zerolog).
+Checkout the [example](./example/) directory for usage example with [`zerolog`](https://github.com/rs/zerolog).
