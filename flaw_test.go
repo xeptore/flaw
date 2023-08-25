@@ -46,6 +46,7 @@ func requireErrEq(t *testing.T, expectedRecords []ExpectedRecord, f error) {
 	require.Exactlyf(t, string(expectedBytes), string(errMessageBytes), "expected two json objects to have equal values")
 	flawErr := new(flaw.Flaw)
 	require.ErrorAs(t, f, &flawErr)
+	require.Len(t, flawErr.ID, 36)
 	for i, r := range flawErr.Records {
 		require.Exactly(t, expectedRecords[i].Key, r.Key)
 		requireJSONEq(t, expectedRecords[i].Payload, r.Payload)

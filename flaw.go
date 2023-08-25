@@ -3,8 +3,11 @@ package flaw
 import (
 	"errors"
 	"runtime"
+	"strconv"
 	"strings"
+	"time"
 
+	gonanoid "github.com/matoous/go-nanoid"
 	"github.com/xeptore/flaw/v2/internal/encoder"
 )
 
@@ -27,6 +30,8 @@ type StackTrace struct {
 }
 
 type Flaw struct {
+	// ID is a 36 characters URL-safe unique identifier for the instance.
+	ID      string
 	Records []Record
 	Traces  []StackTrace
 }
@@ -67,8 +72,25 @@ func traces() []StackTrace {
 	return st
 }
 
+func mustGenerateID() string {
+	for i := 0; i < 20; i++ {
+		id, err := gonanoid.ID(36)
+		if nil != err {
+			continue
+		}
+		return id
+	}
+	var str string
+	for len(str) < 36 {
+		str += strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+	}
+	return str[:36]
+}
+
 func newFlawWithoutTrace(message string, rec *encoder.Record) *Flaw {
+	id := mustGenerateID()
 	return &Flaw{
+		ID: id,
 		Records: []Record{
 			{
 				Key:     rec.Key,
