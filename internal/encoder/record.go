@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/xeptore/flaw/v4/internal/encoder/json"
+	"github.com/xeptore/flaw/v5/internal/encoder/json"
 )
 
 var (
@@ -18,13 +18,11 @@ var (
 // duplicate keys. In this case, many consumers will take the last value,
 // but this is not guaranteed; check yours if in doubt.
 type Record struct {
-	Key string
 	buf []byte
 }
 
-func Dict(key string) *Record {
+func Dict() *Record {
 	return &Record{
-		Key: key,
 		buf: enc.AppendBeginMarker(nil),
 	}
 }

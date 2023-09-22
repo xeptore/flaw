@@ -11,7 +11,7 @@ import (
 	"github.com/goccy/go-json"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 
-	"github.com/xeptore/flaw/v4/internal/encoder"
+	"github.com/xeptore/flaw/v5/internal/encoder"
 )
 
 var (
@@ -27,7 +27,6 @@ type (
 // than can be used for logging purposes.
 type Record struct {
 	Message string
-	Key     string
 	Payload []byte
 }
 
@@ -52,17 +51,11 @@ func (f *Flaw) Error() string {
 		if i != 0 {
 			builder.WriteByte(',')
 		}
-		builder.WriteString(`{"key":`)
-		key, err := json.Marshal(r.Key)
-		if nil != err {
-			return fmt.Errorf("failed to serialize record key to json: %v", err).Error()
-		}
-		builder.Write(key)
+		builder.WriteString(`{"message":`)
 		msg, err := json.Marshal(r.Message)
 		if nil != err {
 			return fmt.Errorf("failed to serialize record message to json: %v", err).Error()
 		}
-		builder.WriteString(`,"message":`)
 		builder.Write(msg)
 		builder.WriteString(`,"payload":`)
 		if r.Payload == nil {
@@ -151,7 +144,6 @@ func From(err error, message string) *Flaw {
 }
 
 func (f *Flaw) With(rec *encoder.Record) *Flaw {
-	f.Records[len(f.Records)-1].Key = rec.Key
 	f.Records[len(f.Records)-1].Payload = encoder.JSON(rec)
 	return f
 }

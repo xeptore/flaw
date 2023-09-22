@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/tidwall/pretty"
-	"github.com/xeptore/flaw/v4"
+	"github.com/xeptore/flaw/v5"
 )
 
 var (
@@ -34,8 +34,8 @@ func (p Pretty) Write(line []byte) (int, error) {
 func insertRedisKey(key string, value string) error {
 	if key == "bad-key" {
 		return flaw.
-			New("attempt to insert a bad key into redis").
-			With(flaw.NewDict("redis").Str("key", key).Str("value", value))
+			New("redis: attempt to insert a bad key into redis").
+			With(flaw.NewDict().Str("key", key).Str("value", value))
 	}
 
 	if time.Now().Day()%2 == 0 {
@@ -49,8 +49,8 @@ func createUser(userID string, age int, isAdmin bool) error {
 	if age > 40 {
 		if err := insertRedisKey("bad-key", userID); nil != err {
 			return flaw.
-				From(err, "failed to insert user into redis").
-				With(flaw.NewDict("user").Str("id", userID).Int("age", age).Bool("is_admin", isAdmin))
+				From(err, "user: failed to insert user into redis").
+				With(flaw.NewDict().Str("id", userID).Int("age", age).Bool("is_admin", isAdmin))
 		}
 	}
 	return nil
@@ -62,11 +62,17 @@ func logErr(err error) {
 		Func(
 			func(e *zerolog.Event) {
 				if flawErr := new(flaw.Flaw); errors.As(err, &flawErr) {
-					dict := zerolog.Dict()
+					records := zerolog.Arr()
 					for _, v := range flawErr.Records {
-						dict.RawJSON(v.Key, v.Payload)
+						record := zerolog.Dict().Str("message", v.Message)
+						if v.Payload == nil {
+							record.RawJSON("payload", []byte("null"))
+						} else {
+							record.RawJSON("payload", v.Payload)
+						}
+						records.Dict(record)
 					}
-					e.Dict("info", dict)
+					e.Array("records", records)
 					e.Func(func(e *zerolog.Event) {
 						arr := zerolog.Arr()
 						lo.ForEach(flawErr.Traces, func(v flaw.StackTrace, _ int) {
@@ -85,46 +91,50 @@ func logErr(err error) {
 // Will print the following JSON object:
 // {
 //   "level": "error",
-//   "info": {
-//     "redis": {
-//       "key": "bad-key",
-//       "value": "a",
-//       "error": "attempt to insert a bad key into redis"
+//   "records": [
+//     {
+//       "message": "redis: attempt to insert a bad key into redis",
+//       "payload": {
+//         "key": "bad-key",
+//         "value": "a"
+//       }
 //     },
-//     "user": {
-//       "id": "a",
-//       "age": 42,
-//       "is_admin": true,
-//       "error": "failed to insert user into redis"
+//     {
+//       "message": "user: failed to insert user into redis",
+//       "payload": {
+//         "id": "a",
+//         "age": 42,
+//         "is_admin": true
+//       }
 //     }
-//   },
+//   ],
 //   "stack_traces": [
 //     {
-//       "location": "./main.go:36",
+//       "location": "/home/nerd/dev/flaw/example/main.go:37",
 //       "function": "main.insertRedisKey"
 //     },
 //     {
-//       "location": "./main.go:51",
+//       "location": "/home/nerd/dev/flaw/example/main.go:50",
 //       "function": "main.createUser"
 //     },
 //     {
-//       "location": "./main.go:134",
+//       "location": "/home/nerd/dev/flaw/example/main.go:145",
 //       "function": "main.main.func1"
 //     },
 //     {
-//       "location": "net/http/server.go:2136",
+//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2136",
 //       "function": "net/http.HandlerFunc.ServeHTTP"
 //     },
 //     {
-//       "location": "net/http/server.go:2514",
+//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2514",
 //       "function": "net/http.(*ServeMux).ServeHTTP"
 //     },
 //     {
-//       "location": "net/http/server.go:2938",
+//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2938",
 //       "function": "net/http.serverHandler.ServeHTTP"
 //     },
 //     {
-//       "location": "net/http/server.go:2009",
+//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2009",
 //       "function": "net/http.(*conn).serve"
 //     }
 //   ]

@@ -7,12 +7,11 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
-	"github.com/xeptore/flaw/v4"
+	"github.com/xeptore/flaw/v5"
 )
 
 type ExpectedRecord struct {
 	Message string         `json:"message"`
-	Key     string         `json:"key"`
 	Payload map[string]any `json:"payload"`
 }
 
@@ -26,9 +25,9 @@ func requireErrEq(t *testing.T, expectedRecords []ExpectedRecord, f error) {
 func TestNew(t *testing.T) {
 	t.Parallel()
 	f := flaw.
-		New("failed to connect to database").
+		New("db: failed to connect to database").
 		With(
-			flaw.NewDict("db").
+			flaw.NewDict().
 				Str("host", "localhost").
 				Int("port", 5643).
 				Str("username", "root").
@@ -36,8 +35,7 @@ func TestNew(t *testing.T) {
 		)
 	expectedRecords := []ExpectedRecord{
 		{
-			Message: "failed to connect to database",
-			Key:     "db",
+			Message: "db: failed to connect to database",
 			Payload: map[string]any{
 				"host":     "localhost",
 				"password": "root",
@@ -58,12 +56,9 @@ func TestFrom(t *testing.T) {
 
 func testFromNonExisting(t *testing.T) {
 	t.Parallel()
-	err := flaw.From(
-		os.ErrClosed,
-		"failed to connect to database",
-	).
+	err := flaw.From(os.ErrClosed, "db: failed to connect to database").
 		With(
-			flaw.NewDict("db").
+			flaw.NewDict().
 				Str("host", "localhost").
 				Int("port", 5643).
 				Str("username", "root").
@@ -71,8 +66,7 @@ func testFromNonExisting(t *testing.T) {
 		)
 	expectedRecords := []ExpectedRecord{
 		{
-			Message: "failed to connect to database: file already closed",
-			Key:     "db",
+			Message: "db: failed to connect to database: file already closed",
 			Payload: map[string]any{
 				"host":     "localhost",
 				"password": "root",
@@ -87,9 +81,9 @@ func testFromNonExisting(t *testing.T) {
 func testFromExisting(t *testing.T) {
 	t.Parallel()
 	err := flaw.
-		New("failed to connect to database").
+		New("db: failed to connect to database").
 		With(
-			flaw.NewDict("db").
+			flaw.NewDict().
 				Str("host", "localhost").
 				Int("port", 5643).
 				Str("username", "root").
@@ -97,8 +91,7 @@ func testFromExisting(t *testing.T) {
 		)
 	expectedRecords := []ExpectedRecord{
 		{
-			Message: "failed to connect to database",
-			Key:     "db",
+			Message: "db: failed to connect to database",
 			Payload: map[string]any{
 				"host":     "localhost",
 				"password": "root",
@@ -109,12 +102,9 @@ func testFromExisting(t *testing.T) {
 	}
 	requireErrEq(t, expectedRecords, err)
 
-	err = flaw.From(
-		err,
-		"failed to create user: permission denied",
-	).
+	err = flaw.From(err, "api: failed to create user: permission denied").
 		With(
-			flaw.NewDict("api").
+			flaw.NewDict().
 				Str("request_id", "8fbbb51f-6f3a-4c9d-885a-92eb8e09cc31").
 				Str("time", "2023-08-25T04:44:41.059Z").
 				Str("client_ip", "127.0.0.1").
@@ -123,8 +113,7 @@ func testFromExisting(t *testing.T) {
 	expectedRecords = append(
 		expectedRecords,
 		ExpectedRecord{
-			Message: "failed to create user: permission denied",
-			Key:     "api",
+			Message: "api: failed to create user: permission denied",
 			Payload: map[string]any{
 				"time":        "2023-08-25T04:44:41.059Z",
 				"request_id":  "8fbbb51f-6f3a-4c9d-885a-92eb8e09cc31",
@@ -138,14 +127,10 @@ func testFromExisting(t *testing.T) {
 
 func testFromNoRecord(t *testing.T) {
 	t.Parallel()
-	err := flaw.From(
-		os.ErrClosed,
-		"failed to connect to database",
-	)
+	err := flaw.From(os.ErrClosed, "failed to connect to database")
 	expectedRecords := []ExpectedRecord{
 		{
 			Message: "failed to connect to database: file already closed",
-			Key:     "",
 			Payload: nil,
 		},
 	}
