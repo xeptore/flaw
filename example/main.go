@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/tidwall/pretty"
-	"github.com/xeptore/flaw/v3"
+	"github.com/xeptore/flaw/v4"
 )
 
 var (
@@ -33,10 +33,9 @@ func (p Pretty) Write(line []byte) (int, error) {
 
 func insertRedisKey(key string, value string) error {
 	if key == "bad-key" {
-		return flaw.New(
-			"attempt to insert a bad key into redis",
-			flaw.NewDict("redis").Str("key", key).Str("value", value),
-		)
+		return flaw.
+			New("attempt to insert a bad key into redis").
+			With(flaw.NewDict("redis").Str("key", key).Str("value", value))
 	}
 
 	if time.Now().Day()%2 == 0 {
@@ -49,11 +48,9 @@ func insertRedisKey(key string, value string) error {
 func createUser(userID string, age int, isAdmin bool) error {
 	if age > 40 {
 		if err := insertRedisKey("bad-key", userID); nil != err {
-			return flaw.From(
-				err,
-				"failed to insert user into redis",
-				flaw.NewDict("user").Str("id", userID).Int("age", age).Bool("is_admin", isAdmin),
-			)
+			return flaw.
+				From(err, "failed to insert user into redis").
+				With(flaw.NewDict("user").Str("id", userID).Int("age", age).Bool("is_admin", isAdmin))
 		}
 	}
 	return nil

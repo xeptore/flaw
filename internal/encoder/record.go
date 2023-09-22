@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/xeptore/flaw/v3/internal/encoder/json"
+	"github.com/xeptore/flaw/v4/internal/encoder/json"
 )
 
 var (

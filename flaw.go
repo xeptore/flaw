@@ -2,14 +2,16 @@ package flaw
 
 import (
 	"errors"
+	"fmt"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/goccy/go-json"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 
-	"github.com/xeptore/flaw/v3/internal/encoder"
+	"github.com/xeptore/flaw/v4/internal/encoder"
 )
 
 var (
@@ -24,6 +26,7 @@ type (
 // Record contains JSON serialized contextual information object, and a key
 // than can be used for logging purposes.
 type Record struct {
+	Message string
 	Key     string
 	Payload []byte
 }
@@ -49,8 +52,24 @@ func (f *Flaw) Error() string {
 		if i != 0 {
 			builder.WriteByte(',')
 		}
-		builder.WriteString(`{"key":"` + r.Key + `","payload":`)
-		builder.Write(r.Payload)
+		builder.WriteString(`{"key":`)
+		key, err := json.Marshal(r.Key)
+		if nil != err {
+			return fmt.Errorf("failed to serialize record key to json: %v", err).Error()
+		}
+		builder.Write(key)
+		msg, err := json.Marshal(r.Message)
+		if nil != err {
+			return fmt.Errorf("failed to serialize record message to json: %v", err).Error()
+		}
+		builder.WriteString(`,"message":`)
+		builder.Write(msg)
+		builder.WriteString(`,"payload":`)
+		if r.Payload == nil {
+			builder.WriteString("null")
+		} else {
+			builder.Write(r.Payload)
+		}
 		builder.WriteString(`}`)
 	}
 	builder.WriteByte(']')
@@ -91,14 +110,13 @@ func mustGenerateID() string {
 	return str[:36]
 }
 
-func newFlawWithoutTrace(message string, rec *encoder.Record) *Flaw {
+func newFlawWithoutTrace(message string) *Flaw {
 	id := mustGenerateID()
 	return &Flaw{
 		ID: id,
 		Records: []Record{
 			{
-				Key:     rec.Key,
-				Payload: encoder.JSON(encoder.AppendErr(rec, message)),
+				Message: message,
 			},
 		},
 		Traces: nil,
@@ -107,8 +125,8 @@ func newFlawWithoutTrace(message string, rec *encoder.Record) *Flaw {
 
 // New creates a [Flaw] instance with a message, and contextual information
 // record embedded into it.
-func New(message string, rec *encoder.Record) *Flaw {
-	f := newFlawWithoutTrace(message, rec)
+func New(message string) *Flaw {
+	f := newFlawWithoutTrace(message)
 	f.Traces = traces()
 	return f
 }
@@ -117,18 +135,23 @@ func New(message string, rec *encoder.Record) *Flaw {
 // information to it, if it already contains a [Flaw] inside (checked using
 // [errors.As]), or creates a new instance similar to [New] with message, and
 // err.Error concatenated together. It panics if err is nil.
-func From(err error, message string, rec *encoder.Record) *Flaw {
+func From(err error, message string) *Flaw {
 	if nil == err {
 		panic("err can not be nil")
 	}
 	if flaw := new(Flaw); errors.As(err, &flaw) {
 		flaw.Records = append(flaw.Records, Record{
-			Key:     rec.Key,
-			Payload: encoder.JSON(encoder.AppendErr(rec, message)),
+			Message: message,
 		})
 		return flaw
 	}
-	f := newFlawWithoutTrace(message+": "+err.Error(), rec)
+	f := newFlawWithoutTrace(message + ": " + err.Error())
 	f.Traces = traces()
+	return f
+}
+
+func (f *Flaw) With(rec *encoder.Record) *Flaw {
+	f.Records[len(f.Records)-1].Key = rec.Key
+	f.Records[len(f.Records)-1].Payload = encoder.JSON(rec)
 	return f
 }
