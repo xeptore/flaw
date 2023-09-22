@@ -8,12 +8,17 @@ import (
 	"time"
 
 	gonanoid "github.com/matoous/go-nanoid/v2"
-	"github.com/xeptore/flaw/v2/internal/encoder"
+
+	"github.com/xeptore/flaw/v3/internal/encoder"
 )
 
 var (
-	// Dict can be used to initialize a JSON object of contextual information record with a key.
-	Dict = encoder.Dict
+	// NewDict can be used to initialize a JSON object of contextual information record with a key.
+	NewDict = encoder.Dict
+)
+
+type (
+	Dict = encoder.Record
 )
 
 // Record contains JSON serialized contextual information object, and a key

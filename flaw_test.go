@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
 
-	"github.com/xeptore/flaw/v2"
+	"github.com/xeptore/flaw/v3"
 )
 
 type ExpectedRecord struct {
@@ -57,7 +57,7 @@ func TestNew(t *testing.T) {
 	t.Parallel()
 	f := flaw.New(
 		"failed to connect to database",
-		flaw.Dict("db").
+		flaw.NewDict("db").
 			Str("host", "localhost").
 			Int("port", 5643).
 			Str("username", "root").
@@ -89,7 +89,7 @@ func testFromNonExisting(t *testing.T) {
 	err := flaw.From(
 		os.ErrClosed,
 		"failed to connect to database",
-		flaw.Dict("db").
+		flaw.NewDict("db").
 			Str("host", "localhost").
 			Int("port", 5643).
 			Str("username", "root").
@@ -114,7 +114,7 @@ func testFromExisting(t *testing.T) {
 	t.Parallel()
 	err := flaw.New(
 		"failed to connect to database",
-		flaw.Dict("db").
+		flaw.NewDict("db").
 			Str("host", "localhost").
 			Int("port", 5643).
 			Str("username", "root").
@@ -137,7 +137,7 @@ func testFromExisting(t *testing.T) {
 	err = flaw.From(
 		err,
 		"failed to create user: permission denied",
-		flaw.Dict("api").
+		flaw.NewDict("api").
 			Str("request_id", "8fbbb51f-6f3a-4c9d-885a-92eb8e09cc31").
 			Str("time", "2023-08-25T04:44:41.059Z").
 			Str("client_ip", "127.0.0.1").

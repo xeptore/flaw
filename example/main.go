@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"github.com/tidwall/pretty"
-	"github.com/xeptore/flaw/v2"
+	"github.com/xeptore/flaw/v3"
 )
 
 var (
@@ -35,7 +35,7 @@ func insertRedisKey(key string, value string) error {
 	if key == "bad-key" {
 		return flaw.New(
 			"attempt to insert a bad key into redis",
-			flaw.Dict("redis").Str("key", key).Str("value", value),
+			flaw.NewDict("redis").Str("key", key).Str("value", value),
 		)
 	}
 
@@ -52,7 +52,7 @@ func createUser(userID string, age int, isAdmin bool) error {
 			return flaw.From(
 				err,
 				"failed to insert user into redis",
-				flaw.Dict("user").Str("id", userID).Int("age", age).Bool("is_admin", isAdmin),
+				flaw.NewDict("user").Str("id", userID).Int("age", age).Bool("is_admin", isAdmin),
 			)
 		}
 	}
