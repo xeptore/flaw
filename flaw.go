@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	gonanoid "github.com/matoous/go-nanoid"
+	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/xeptore/flaw/v2/internal/encoder"
 )
 
@@ -74,11 +74,10 @@ func traces() []StackTrace {
 
 func mustGenerateID() string {
 	for i := 0; i < 20; i++ {
-		id, err := gonanoid.ID(36)
-		if nil != err {
-			continue
+		id, err := gonanoid.New(36)
+		if nil == err {
+			return id
 		}
-		return id
 	}
 	var str string
 	for len(str) < 36 {
