@@ -73,6 +73,11 @@ func (r *Record) Floats64(key string, f []float64) *Record {
 	return r
 }
 
+func (r *Record) Func(f func(r *Record)) *Record {
+	f(r)
+	return r
+}
+
 func (r *Record) Hex(key string, val []byte) *Record {
 	r.buf = enc.AppendHex(enc.AppendKey(r.buf, key), val)
 	return r

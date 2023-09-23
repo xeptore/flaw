@@ -106,35 +106,46 @@ func logErr(err error) {
 //         "age": 42,
 //         "is_admin": true
 //       }
+//     },
+//     {
+//       "message": "http: failed to process request",
+//       "payload": {
+//         "request": {
+//           "headers": {
+//             "Accept": ["*/*"],
+//             "User-Agent": ["curl/8.3.0"]
+//           }
+//         }
+//       }
 //     }
 //   ],
 //   "stack_traces": [
 //     {
-//       "location": "/home/nerd/dev/flaw/example/main.go:37",
+//       "location": "/path/flaw/example/main.go:37",
 //       "function": "main.insertRedisKey"
 //     },
 //     {
-//       "location": "/home/nerd/dev/flaw/example/main.go:50",
+//       "location": "/path/flaw/example/main.go:50",
 //       "function": "main.createUser"
 //     },
 //     {
-//       "location": "/home/nerd/dev/flaw/example/main.go:145",
+//       "location": "/path/flaw/example/main.go:147",
 //       "function": "main.main.func1"
 //     },
 //     {
-//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2136",
+//       "location": "/path/env/go/go/src/net/http/server.go:2136",
 //       "function": "net/http.HandlerFunc.ServeHTTP"
 //     },
 //     {
-//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2514",
+//       "location": "/path/env/go/go/src/net/http/server.go:2514",
 //       "function": "net/http.(*ServeMux).ServeHTTP"
 //     },
 //     {
-//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2938",
+//       "location": "/path/env/go/go/src/net/http/server.go:2938",
 //       "function": "net/http.serverHandler.ServeHTTP"
 //     },
 //     {
-//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2009",
+//       "location": "/path/env/go/go/src/net/http/server.go:2009",
 //       "function": "net/http.(*conn).serve"
 //     }
 //   ]
@@ -146,7 +157,12 @@ func main() {
 		if strings.HasSuffix(r.URL.Path, "/create-user") {
 			if err := createUser("a", 42, true); nil != err {
 				w.WriteHeader(http.StatusInternalServerError)
-				logErr(err)
+				dict := flaw.NewDict().Dict("request", flaw.NewDict().Dict("headers", flaw.NewDict().Func(func(d *flaw.Dict) {
+					for k, v := range r.Header {
+						d.Strs(k, v)
+					}
+				})))
+				logErr(flaw.From(err, "http: failed to process request").With(dict))
 				return
 			}
 			w.WriteHeader(http.StatusCreated)
