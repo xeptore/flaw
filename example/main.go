@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -10,9 +11,9 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/samber/lo"
 	"github.com/tidwall/pretty"
-	"github.com/xeptore/flaw/v5"
+
+	"github.com/xeptore/flaw/v6"
 )
 
 var (
@@ -34,8 +35,8 @@ func (p Pretty) Write(line []byte) (int, error) {
 func insertRedisKey(key string, value string) error {
 	if key == "bad-key" {
 		return flaw.
-			New("redis: attempt to insert a bad key into redis").
-			With(flaw.NewDict().Str("key", key).Str("value", value))
+			From(errors.New("redis: attempt to insert a bad key into redis")).
+			Append(map[string]any{"key": key, "value": value})
 	}
 
 	if time.Now().Day()%2 == 0 {
@@ -48,9 +49,10 @@ func insertRedisKey(key string, value string) error {
 func createUser(userID string, age int, isAdmin bool) error {
 	if age > 40 {
 		if err := insertRedisKey("bad-key", userID); nil != err {
-			return flaw.
-				From(err, "user: failed to insert user into redis").
-				With(flaw.NewDict().Str("id", userID).Int("age", age).Bool("is_admin", isAdmin))
+			if flawErr := new(flaw.Flaw); errors.As(err, &flawErr) {
+				return flawErr.Append(map[string]any{"id": userID, "age": age, "is_admin": isAdmin})
+			}
+			return flaw.From(fmt.Errorf("user: failed to insert user into redis: %v", err))
 		}
 	}
 	return nil
@@ -62,24 +64,21 @@ func logErr(err error) {
 		Func(
 			func(e *zerolog.Event) {
 				if flawErr := new(flaw.Flaw); errors.As(err, &flawErr) {
+					e.Str("error", flawErr.Inner)
 					records := zerolog.Arr()
 					for _, v := range flawErr.Records {
-						record := zerolog.Dict().Str("message", v.Message)
-						if v.Payload == nil {
-							record.RawJSON("payload", []byte("null"))
-						} else {
-							record.RawJSON("payload", v.Payload)
+						payload, err := json.Marshal(v.Payload)
+						if nil != err {
+							panic(fmt.Errorf("failed to marshal record paylod: %v", err))
 						}
-						records.Dict(record)
+						records.Dict(zerolog.Dict().Str("function", v.Function).RawJSON("payload", payload))
 					}
 					e.Array("records", records)
-					e.Func(func(e *zerolog.Event) {
-						arr := zerolog.Arr()
-						lo.ForEach(flawErr.Traces, func(v flaw.StackTrace, _ int) {
-							arr.Dict(zerolog.Dict().Str("location", fmt.Sprintf("%s:%d", v.File, v.Line)).Str("function", v.Function))
-						})
-						e.Array("stack_traces", arr)
-					})
+					stackTrace := zerolog.Arr()
+					for _, v := range flawErr.StackTrace {
+						stackTrace.Dict(zerolog.Dict().Str("location", fmt.Sprintf("%s:%d", v.File, v.Line)).Str("function", v.Function))
+					}
+					e.Array("stack_traces", stackTrace)
 					return
 				}
 				e.Err(err)
@@ -87,58 +86,6 @@ func logErr(err error) {
 		).
 		Send()
 }
-
-// Will print the following JSON object:
-// {
-//   "level": "error",
-//   "records": [
-//     {
-//       "message": "redis: attempt to insert a bad key into redis",
-//       "payload": {
-//         "key": "bad-key",
-//         "value": "a"
-//       }
-//     },
-//     {
-//       "message": "user: failed to insert user into redis",
-//       "payload": {
-//         "id": "a",
-//         "age": 42,
-//         "is_admin": true
-//       }
-//     }
-//   ],
-//   "stack_traces": [
-//     {
-//       "location": "/home/nerd/dev/flaw/example/main.go:37",
-//       "function": "main.insertRedisKey"
-//     },
-//     {
-//       "location": "/home/nerd/dev/flaw/example/main.go:50",
-//       "function": "main.createUser"
-//     },
-//     {
-//       "location": "/home/nerd/dev/flaw/example/main.go:145",
-//       "function": "main.main.func1"
-//     },
-//     {
-//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2136",
-//       "function": "net/http.HandlerFunc.ServeHTTP"
-//     },
-//     {
-//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2514",
-//       "function": "net/http.(*ServeMux).ServeHTTP"
-//     },
-//     {
-//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2938",
-//       "function": "net/http.serverHandler.ServeHTTP"
-//     },
-//     {
-//       "location": "/home/nerd/dev/env/go/go/src/net/http/server.go:2009",
-//       "function": "net/http.(*conn).serve"
-//     }
-//   ]
-// }
 
 func main() {
 	mux := http.NewServeMux()
