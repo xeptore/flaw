@@ -1,6 +1,6 @@
 # Flaw
 
-Go errors with contextual info. Inspired by [`zerolog`](https://github.com/rs/zerolog). Almost all types provided by [`zerolog`](https://github.com/rs/zerolog) are available.
+Go errors with contextual info.
 
 ## Usage
 
