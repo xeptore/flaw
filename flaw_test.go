@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/xeptore/flaw/v6"
+	"github.com/xeptore/flaw/v7"
 )
 
 func TestNew(t *testing.T) {

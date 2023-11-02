@@ -68,10 +68,10 @@ func newFlawWithoutTrace(err error) *Flaw {
 	}
 }
 
-// From creates a [Flaw] instance from an existing error. It appends contextual
-// information to it, if it already contains a [Flaw] inside (checked using
-// [errors.As]), or creates a new instance similar to [New] with message, and
-// err.Error concatenated together. It panics if err is nil.
+// From creates a [Flaw] instance from an existing error. You can append contextual
+// information to it using the [Flaw.Append] function immediately after instantiation,
+// or by the caller, after making sure the returned error is of type [Flaw] (using
+// [errors.As]), It panics if err is nil.
 func From(err error) *Flaw {
 	if nil == err {
 		panic("err can not be nil")
@@ -81,7 +81,13 @@ func From(err error) *Flaw {
 	return f
 }
 
+// Append appends contextual information to [Flaw] instance. It can be called immediately
+// after instantiation using [From], or by the caller, after making sure the returned error
+// is of type [Flaw] (using [errors.As]). It panics of payload is nil.
 func (f *Flaw) Append(payload map[string]any) *Flaw {
+	if nil == payload {
+		panic("payload cannot be nil")
+	}
 	f.Records = append(f.Records, Record{
 		Function: callerFunc(),
 		Payload:  payload,
