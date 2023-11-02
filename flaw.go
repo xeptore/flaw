@@ -4,8 +4,6 @@ import (
 	"runtime"
 )
 
-// Record contains JSON serialized contextual information object, and a key
-// than can be used for logging purposes.
 type Record struct {
 	Function string
 	Payload  map[string]any
@@ -18,12 +16,13 @@ type StackTrace struct {
 }
 
 type Flaw struct {
+	// Inner is the error string that was passed in during initialization.
 	Inner      string
 	Records    []Record
 	StackTrace []StackTrace
 }
 
-// Error satisfies [error]. It returns JSON serialized array of [Flaw].Records.
+// Error satisfies builtin error interface type. It returns the inner error string.
 func (f *Flaw) Error() string {
 	return f.Inner
 }
@@ -70,8 +69,8 @@ func newFlawWithoutTrace(err error) *Flaw {
 
 // From creates a [Flaw] instance from an existing error. You can append contextual
 // information to it using the [Flaw.Append] function immediately after instantiation,
-// or by the caller, after making sure the returned error is of type [Flaw] (using
-// [errors.As]), It panics if err is nil.
+// or by the caller function, after making sure the returned error is of type [Flaw]
+// (using [errors.As]), It panics if err is nil.
 func From(err error) *Flaw {
 	if nil == err {
 		panic("err can not be nil")
@@ -82,8 +81,8 @@ func From(err error) *Flaw {
 }
 
 // Append appends contextual information to [Flaw] instance. It can be called immediately
-// after instantiation using [From], or by the caller, after making sure the returned error
-// is of type [Flaw] (using [errors.As]). It panics of payload is nil.
+// after instantiation using [From], or by the parent caller function, after making sure
+// the returned error is of type [Flaw] (using [errors.As]). It panics if payload is nil.
 func (f *Flaw) Append(payload map[string]any) *Flaw {
 	if nil == payload {
 		panic("payload cannot be nil")
