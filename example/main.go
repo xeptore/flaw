@@ -50,7 +50,7 @@ func createUser(userID string, age int, isAdmin bool) error {
 	if age > 40 {
 		if err := insertRedisKey("bad-key", userID); nil != err {
 			if flawErr := new(flaw.Flaw); errors.As(err, &flawErr) {
-				return flawErr.Append(map[string]any{"id": userID, "age": age, "is_admin": isAdmin})
+				return flawErr.Append(flaw.P{"id": userID, "age": age, "is_admin": isAdmin})
 			}
 			return flaw.From(fmt.Errorf("user: failed to insert user into redis: %v", err))
 		}

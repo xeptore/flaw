@@ -4,9 +4,12 @@ import (
 	"runtime"
 )
 
+// P is shorthand for Record.Payload type
+type P map[string]any
+
 type Record struct {
 	Function string
-	Payload  map[string]any
+	Payload  P
 }
 
 type StackTrace struct {
@@ -83,7 +86,7 @@ func From(err error) *Flaw {
 // Append appends contextual information to [Flaw] instance. It can be called immediately
 // after instantiation using [From], or by the parent caller function, after making sure
 // the returned error is of type [Flaw] (using [errors.As]). It panics if payload is nil.
-func (f *Flaw) Append(payload map[string]any) *Flaw {
+func (f *Flaw) Append(payload P) *Flaw {
 	if nil == payload {
 		panic("payload cannot be nil")
 	}
