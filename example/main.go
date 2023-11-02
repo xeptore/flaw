@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/tidwall/pretty"
 
-	"github.com/xeptore/flaw/v7"
+	"github.com/xeptore/flaw/v8"
 )
 
 var (
@@ -90,56 +90,56 @@ func logErr(err error) {
 // Will print the following JSON object:
 //
 // {
-//  "level": "error",
-//  "error": "redis: attempt to insert a bad key into redis",
-//  "records": [
-//    {
-//      "function": "main.insertRedisKey",
-//      "payload": {
-//        "key": "bad-key",
-//        "value": "a"
-//      }
-//    },
-//    {
-//      "function": "main.createUser",
-//      "payload": {
-//        "age": 42,
-//        "id": "a",
-//        "is_admin": true
-//      }
-//    }
-//  ],
-//  "stack_traces": [
-//    {
-//      "location": "cwd/example/main.go:38",
-//      "function": "main.insertRedisKey"
-//    },
-//    {
-//      "location": "cwd/example/main.go:51",
-//      "function": "main.createUser"
-//    },
-//    {
-//      "location": "cwd/example/main.go:146",
-//      "function": "main.main.func1"
-//    },
-//    {
-//      "location": "goroot/src/net/http/server.go:2136",
-//      "function": "net/http.HandlerFunc.ServeHTTP"
-//    },
-//    {
-//      "location": "goroot/src/net/http/server.go:2514",
-//      "function": "net/http.(*ServeMux).ServeHTTP"
-//    },
-//    {
-//      "location": "goroot/src/net/http/server.go:2938",
-//      "function": "net/http.serverHandler.ServeHTTP"
-//    },
-//    {
-//      "location": "goroot/src/net/http/server.go:2009",
-//      "function": "net/http.(*conn).serve"
-//    }
-//  ]
-//}
+//   "level": "error",
+//   "error": "redis: attempt to insert a bad key into redis",
+//   "records": [
+//     {
+//       "function": "main.insertRedisKey",
+//       "payload": {
+//         "key": "bad-key",
+//         "value": "a"
+//       }
+//     },
+//     {
+//       "function": "main.createUser",
+//       "payload": {
+//         "age": 42,
+//         "id": "a",
+//         "is_admin": true
+//       }
+//     }
+//   ],
+//   "stack_traces": [
+//     {
+//       "location": "cwd/example/main.go:38",
+//       "function": "main.insertRedisKey"
+//     },
+//     {
+//       "location": "cwd/example/main.go:51",
+//       "function": "main.createUser"
+//     },
+//     {
+//       "location": "cwd/example/main.go:146",
+//       "function": "main.main.func1"
+//     },
+//     {
+//       "location": "goroot/src/net/http/server.go:2136",
+//       "function": "net/http.HandlerFunc.ServeHTTP"
+//     },
+//     {
+//       "location": "goroot/src/net/http/server.go:2514",
+//       "function": "net/http.(*ServeMux).ServeHTTP"
+//     },
+//     {
+//       "location": "goroot/src/net/http/server.go:2938",
+//       "function": "net/http.serverHandler.ServeHTTP"
+//     },
+//     {
+//       "location": "goroot/src/net/http/server.go:2009",
+//       "function": "net/http.(*conn).serve"
+//     }
+//   ]
+// }
 
 func main() {
 	mux := http.NewServeMux()

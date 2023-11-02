@@ -7,8 +7,8 @@ import (
 // Record contains JSON serialized contextual information object, and a key
 // than can be used for logging purposes.
 type Record struct {
-	Function string         `json:"function"`
-	Payload  map[string]any `json:"payload"`
+	Function string
+	Payload  map[string]any
 }
 
 type StackTrace struct {
@@ -18,9 +18,9 @@ type StackTrace struct {
 }
 
 type Flaw struct {
-	Inner      string       `json:"inner"`
-	Records    []Record     `json:"records"`
-	StackTrace []StackTrace `json:"stack_trace"`
+	Inner      string
+	Records    []Record
+	StackTrace []StackTrace
 }
 
 // Error satisfies [error]. It returns JSON serialized array of [Flaw].Records.
