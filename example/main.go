@@ -123,19 +123,19 @@ func logErr(err error) {
 //      "function": "main.main.func1"
 //    },
 //    {
-//      "location": "cwd/go/go/src/net/http/server.go:2136",
+//      "location": "goroot/src/net/http/server.go:2136",
 //      "function": "net/http.HandlerFunc.ServeHTTP"
 //    },
 //    {
-//      "location": "cwd/go/go/src/net/http/server.go:2514",
+//      "location": "goroot/src/net/http/server.go:2514",
 //      "function": "net/http.(*ServeMux).ServeHTTP"
 //    },
 //    {
-//      "location": "cwd/go/go/src/net/http/server.go:2938",
+//      "location": "goroot/src/net/http/server.go:2938",
 //      "function": "net/http.serverHandler.ServeHTTP"
 //    },
 //    {
-//      "location": "cwd/go/go/src/net/http/server.go:2009",
+//      "location": "goroot/src/net/http/server.go:2009",
 //      "function": "net/http.(*conn).serve"
 //    }
 //  ]
