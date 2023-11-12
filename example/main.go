@@ -36,7 +36,7 @@ func insertRedisKey(key string, value string) error {
 	if key == "bad-key" {
 		return flaw.
 			From(errors.New("redis: attempt to insert a bad key into redis")).
-			Append(map[string]any{"key": key, "value": value})
+			Append(map[string]any{"key": key, "value": value}, nil, map[string]any{"x": 2})
 	}
 
 	if time.Now().Day()%2 == 0 {
@@ -97,7 +97,8 @@ func logErr(err error) {
 //       "function": "main.insertRedisKey",
 //       "payload": {
 //         "key": "bad-key",
-//         "value": "a"
+//         "value": "a",
+//         "x": 2
 //       }
 //     },
 //     {
@@ -119,7 +120,7 @@ func logErr(err error) {
 //       "function": "main.createUser"
 //     },
 //     {
-//       "location": "cwd/example/main.go:146",
+//       "location": "cwd/example/main.go:149",
 //       "function": "main.main.func1"
 //     },
 //     {
