@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/xeptore/flaw/v8"
 )
@@ -15,30 +15,46 @@ func TestNew(t *testing.T) {
 	t.Parallel()
 	err := flaw.
 		From(fmt.Errorf("db: failed to connect to database: %v", os.ErrPermission)).
-		Append(map[string]any{
+		Append(flaw.P{
 			"host":     "localhost",
 			"port":     5643,
 			"username": "root",
 			"password": "root",
 		})
+	assert.Panics(t, func() { err.Append(nil) })
 	callerErr := func() error {
 		if flawErr := new(flaw.Flaw); errors.As(err, &flawErr) {
-			return flawErr.Append(map[string]any{
-				"artist": "Ramin Djawadi",
-				"year":   2012,
-			})
+			return flawErr.Append(
+				flaw.P{
+					"artist": "Ramin Djawadi",
+					"year":   2012,
+				},
+				flaw.P{
+					"sql": flaw.P{
+						"query": "select * from artists",
+					},
+				},
+			)
 		} else {
-			require.FailNow(t, "expected flaw error to pass errors.As, but failed")
+			assert.FailNow(t, "expected flaw error to pass errors.As, but failed")
 			return nil
 		}
 	}()
-	require.Exactly(t, "db: failed to connect to database: permission denied", err.Error())
-	require.Exactly(t, "db: failed to connect to database: permission denied", err.Inner)
-	require.Truef(t, len(err.StackTrace) > 0, "expected flaw stack trace not to be empty")
-	require.Len(t, err.Records, 2)
-	require.Exactly(t, err.Records[0].Function, "command-line-arguments_test.TestNew")
-	require.Exactly(t, err.Records[0].Payload, map[string]any{"host": "localhost", "port": 5643, "username": "root", "password": "root"})
-	require.NotNil(t, callerErr)
-	require.Exactly(t, err.Records[1].Function, "command-line-arguments_test.TestNew.func1")
-	require.Exactly(t, err.Records[1].Payload, map[string]any{"artist": "Ramin Djawadi", "year": 2012})
+	assert.Exactly(t, "db: failed to connect to database: permission denied", err.Error())
+	assert.Exactly(t, "db: failed to connect to database: permission denied", err.Inner)
+	assert.Truef(t, len(err.StackTrace) > 0, "expected flaw stack trace not to be empty")
+	assert.Len(t, err.Records, 2)
+	assert.Exactly(t, "github.com/xeptore/flaw/v8_test.TestNew", err.Records[0].Function)
+	assert.Exactly(t, flaw.P{"host": "localhost", "port": 5643, "username": "root", "password": "root"}, err.Records[0].Payload)
+	assert.NotNil(t, callerErr)
+	assert.Exactly(t, "github.com/xeptore/flaw/v8_test.TestNew.func2", err.Records[1].Function)
+	assert.Exactly(t, flaw.P{"artist": "Ramin Djawadi", "year": 2012, "sql": flaw.P{"query": "select * from artists"}}, err.Records[1].Payload)
+}
+
+func TestFrom(t *testing.T) {
+	t.Parallel()
+	t.Run("ShouldPanicOnNilArg", func(t *testing.T) {
+		t.Parallel()
+		assert.Panics(t, func() { flaw.From(nil) })
+	})
 }
