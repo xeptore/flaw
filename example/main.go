@@ -29,10 +29,24 @@ type Pretty struct {
 }
 
 func (p Pretty) Write(line []byte) (int, error) {
-	return os.Stderr.Write(pretty.Color(pretty.Pretty(line), nil))
+	return os.Stderr.Write(pretty.Pretty(line))
 }
 
-func insertRedisKey(key string, value string) error {
+func closeFile() error {
+	return errors.New("wtf")
+}
+
+func insertRedisKey(key string, value string) (err error) {
+	defer func() {
+		if nil != err {
+			if closeErr := closeFile(); nil != closeErr {
+				if flawErr := new(flaw.Flaw); errors.As(err, &flawErr) {
+					flawErr.Join(fmt.Errorf("failed to close file: %v", closeErr)).Append(flaw.P{"tty": "putty"})
+				}
+			}
+		}
+	}()
+
 	if key == "bad-key" {
 		return flaw.
 			From(errors.New("redis: attempt to insert a bad key into redis")).
@@ -65,20 +79,53 @@ func logErr(err error) {
 			func(e *zerolog.Event) {
 				if flawErr := new(flaw.Flaw); errors.As(err, &flawErr) {
 					e.Str("error", flawErr.Inner)
+
 					records := zerolog.Arr()
 					for _, v := range flawErr.Records {
 						payload, err := json.Marshal(v.Payload)
 						if nil != err {
 							panic(fmt.Errorf("failed to marshal record paylod: %v", err))
 						}
-						records.Dict(zerolog.Dict().Str("function", v.Function).RawJSON("payload", payload))
+						records.
+							Dict(
+								zerolog.
+									Dict().
+									Str("function", v.Function).
+									RawJSON("payload", payload),
+							)
 					}
 					e.Array("records", records)
+
 					stackTrace := zerolog.Arr()
 					for _, v := range flawErr.StackTrace {
-						stackTrace.Dict(zerolog.Dict().Str("location", fmt.Sprintf("%s:%d", v.File, v.Line)).Str("function", v.Function))
+						stackTrace.
+							Dict(
+								zerolog.
+									Dict().
+									Str("location", fmt.Sprintf("%s:%d", v.File, v.Line)).
+									Str("function", v.Function),
+							)
 					}
 					e.Array("stack_traces", stackTrace)
+
+					joined := zerolog.Arr()
+					for _, v := range flawErr.JoinedErrors {
+						d := zerolog.
+							Dict().
+							Str("message", v.Message)
+						if st := v.CallerStackTrace; nil != st {
+							d.Dict(
+								"caller_stack_trace",
+								zerolog.
+									Dict().
+									Str("location", fmt.Sprintf("%s:%d", st.File, st.Line)).
+									Str("function", st.Function),
+							)
+						}
+						joined.Dict(d)
+					}
+					e.Array("joined_errors", joined)
+
 					return
 				}
 				e.Err(err)
@@ -102,6 +149,12 @@ func logErr(err error) {
 //       }
 //     },
 //     {
+//       "function": "main.insertRedisKey.func1",
+//       "payload": {
+//         "tty": "putty"
+//       }
+//     },
+//     {
 //       "function": "main.createUser",
 //       "payload": {
 //         "age": 42,
@@ -112,32 +165,45 @@ func logErr(err error) {
 //   ],
 //   "stack_traces": [
 //     {
-//       "location": "cwd/example/main.go:38",
+//       "location": "cwd/flaw/example/main.go:52",
 //       "function": "main.insertRedisKey"
 //     },
 //     {
-//       "location": "cwd/example/main.go:51",
+//       "location": "cwd/flaw/example/main.go:65",
 //       "function": "main.createUser"
 //     },
 //     {
-//       "location": "cwd/example/main.go:149",
+//       "location": "cwd/flaw/example/main.go:196",
 //       "function": "main.main.func1"
 //     },
 //     {
-//       "location": "goroot/src/net/http/server.go:2136",
+//       "location": "goroot/src/net/http/server.go:2166",
 //       "function": "net/http.HandlerFunc.ServeHTTP"
 //     },
 //     {
-//       "location": "goroot/src/net/http/server.go:2514",
+//       "location": "goroot/src/net/http/server.go:2683",
 //       "function": "net/http.(*ServeMux).ServeHTTP"
 //     },
 //     {
-//       "location": "goroot/src/net/http/server.go:2938",
+//       "location": "goroot/src/net/http/server.go:3137",
 //       "function": "net/http.serverHandler.ServeHTTP"
 //     },
 //     {
-//       "location": "goroot/src/net/http/server.go:2009",
+//       "location": "goroot/src/net/http/server.go:2039",
 //       "function": "net/http.(*conn).serve"
+//     },
+//     {
+//       "location": "goroot/src/runtime/asm_amd64.s:1695",
+//       "function": "runtime.goexit"
+//     }
+//   ],
+//   "joined_errors": [
+//     {
+//       "message": "failed to close file: wtf",
+//       "caller_stack_trace": {
+//         "location": "cwd/flaw/example/main.go:44",
+//         "function": "main.insertRedisKey.func1"
+//       }
 //     }
 //   ]
 // }
