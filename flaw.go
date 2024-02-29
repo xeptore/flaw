@@ -86,8 +86,8 @@ func From(err error) *Flaw {
 // Append appends contextual information to [Flaw] instance. It can be called immediately
 // after instantiation using [From], or by the parent caller function, after making sure
 // the returned error is of type [Flaw] (using [errors.As]). It panics if payload is nil.
-// Elements in payloads will be merged into payload in a nested loop, thus duplicate keys
-// will be overwritten.
+// Elements in payloads will be merged into payload in order they are provided,
+// thus duplicate keys will be overwritten.
 func (f *Flaw) Append(payload P, payloads ...P) *Flaw {
 	if nil == payload {
 		panic("payload cannot be nil")
