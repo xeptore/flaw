@@ -99,10 +99,7 @@ func callerFunc() string {
 	var pcs [depth]uintptr
 	n := runtime.Callers(3, pcs[:])
 	frames := runtime.CallersFrames(pcs[:n])
-	frame, more := frames.Next()
-	if !more {
-		return "<UNKNOWN>"
-	}
+	frame, _ := frames.Next()
 	return frame.Function
 }
 
