@@ -1,6 +1,7 @@
 package flaw
 
 import (
+	"fmt"
 	"runtime"
 )
 
@@ -35,11 +36,19 @@ type JoinedError struct {
 	// which in a very rare case can be nil. See [runtime.CallersFrames],
 	// and [runtime.Callers] for more information on when this might happen.
 	CallerStackTrace *StackTrace
+	// TypeName is the type name of the error, which is the result of calling [fmt.Sprintf("%T", err)].
+	TypeName string
+	// SyntaxRepr is the string representation of the error, which is the result of calling [fmt.Sprintf("%+#v", err)].
+	SyntaxRepr string
 }
 
 type Flaw struct {
 	// Inner is the error string that was passed in during initialization.
 	Inner string
+	// InnerType is the type name of the error, which is the result of calling [fmt.Sprintf("%T", err)].
+	InnerType string
+	// InnerSyntaxRepr is the string representation of the error, which is the result of calling [fmt.Sprintf("%+#v", err)].
+	InnerSyntaxRepr string
 	// JoinedErrors is the list of optional (nil-able) errors
 	// joined into the error while traversing the stack back,
 	// usually in the same function initiated the error.
@@ -105,9 +114,11 @@ func callerFunc() string {
 
 func newFlawWithoutTrace(err error) *Flaw {
 	return &Flaw{
-		Records:    nil,
-		Inner:      err.Error(),
-		StackTrace: nil,
+		Records:         nil,
+		Inner:           err.Error(),
+		InnerType:       fmt.Sprintf("%T", err),
+		InnerSyntaxRepr: fmt.Sprintf("%+#v", err),
+		StackTrace:      nil,
 	}
 }
 
@@ -160,6 +171,8 @@ func (f *Flaw) Join(err error) *Flaw {
 	f.JoinedErrors = append(f.JoinedErrors, JoinedError{
 		Message:          err.Error(),
 		CallerStackTrace: joinTrace(),
+		TypeName:         fmt.Sprintf("%T", err),
+		SyntaxRepr:       fmt.Sprintf("%+#v", err),
 	})
 	return f
 }

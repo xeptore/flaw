@@ -41,7 +41,7 @@ func insertRedisKey(key string, value string) (err error) {
 		if nil != err {
 			if closeErr := closeFile(); nil != closeErr {
 				if flawErr := new(flaw.Flaw); errors.As(err, &flawErr) {
-					flawErr.Join(fmt.Errorf("failed to close file: %v", closeErr)).Append(flaw.P{"tty": "putty"})
+					flawErr.Join(fmt.Errorf("failed to close file: %v", closeErr)).Append(flaw.P{"tty": "putty"}).Join(os.ErrPermission)
 				}
 			}
 		}
@@ -78,7 +78,14 @@ func logErr(err error) {
 		Func(
 			func(e *zerolog.Event) {
 				if flawErr := new(flaw.Flaw); errors.As(err, &flawErr) {
-					e.Str("error", flawErr.Inner)
+					e.Dict(
+						"error",
+						zerolog.
+							Dict().
+							Str("message", flawErr.Inner).
+							Str("typename", flawErr.InnerType).
+							Str("syntax_representation", flawErr.InnerSyntaxRepr),
+					)
 
 					records := zerolog.Arr()
 					for _, v := range flawErr.Records {
@@ -110,9 +117,7 @@ func logErr(err error) {
 
 					joined := zerolog.Arr()
 					for _, v := range flawErr.JoinedErrors {
-						d := zerolog.
-							Dict().
-							Str("message", v.Message)
+						d := zerolog.Dict()
 						if st := v.CallerStackTrace; nil != st {
 							d.Dict(
 								"caller_stack_trace",
@@ -122,6 +127,14 @@ func logErr(err error) {
 									Str("function", st.Function),
 							)
 						}
+						d.Dict(
+							"error",
+							zerolog.
+								Dict().
+								Str("message", v.Message).
+								Str("type_name", v.TypeName).
+								Str("syntax_representation", v.SyntaxRepr),
+						)
 						joined.Dict(d)
 					}
 					e.Array("joined_errors", joined)
@@ -138,7 +151,11 @@ func logErr(err error) {
 //
 // {
 //   "level": "error",
-//   "error": "redis: attempt to insert a bad key into redis",
+//   "error": {
+//     "message": "redis: attempt to insert a bad key into redis",
+//     "typename": "*errors.errorString",
+//     "syntax_representation": "&errors.errorString{s:\"redis: attempt to insert a bad key into redis\"}"
+//   },
 //   "records": [
 //     {
 //       "function": "main.insertRedisKey",
@@ -173,36 +190,51 @@ func logErr(err error) {
 //       "function": "main.createUser"
 //     },
 //     {
-//       "location": "cwd/flaw/example/main.go:196",
+//       "location": "cwd/flaw/example/main.go:228",
 //       "function": "main.main.func1"
 //     },
 //     {
-//       "location": "goroot/src/net/http/server.go:2166",
+//       "location": "goroot/src/net/http/server.go:2220",
 //       "function": "net/http.HandlerFunc.ServeHTTP"
 //     },
 //     {
-//       "location": "goroot/src/net/http/server.go:2683",
+//       "location": "goroot/src/net/http/server.go:2747",
 //       "function": "net/http.(*ServeMux).ServeHTTP"
 //     },
 //     {
-//       "location": "goroot/src/net/http/server.go:3137",
+//       "location": "goroot/src/net/http/server.go:3210",
 //       "function": "net/http.serverHandler.ServeHTTP"
 //     },
 //     {
-//       "location": "goroot/src/net/http/server.go:2039",
+//       "location": "goroot/src/net/http/server.go:2092",
 //       "function": "net/http.(*conn).serve"
 //     },
 //     {
-//       "location": "goroot/src/runtime/asm_amd64.s:1695",
+//       "location": "goroot/src/runtime/asm_arm64.s:1223",
 //       "function": "runtime.goexit"
 //     }
 //   ],
 //   "joined_errors": [
 //     {
-//       "message": "failed to close file: wtf",
 //       "caller_stack_trace": {
 //         "location": "cwd/flaw/example/main.go:44",
 //         "function": "main.insertRedisKey.func1"
+//       },
+//       "error": {
+//         "message": "failed to close file: wtf",
+//         "type_name": "*errors.errorString",
+//         "syntax_representation": "&errors.errorString{s:\"failed to close file: wtf\"}"
+//       }
+//     },
+//     {
+//       "caller_stack_trace": {
+//         "location": "cwd/flaw/example/main.go:44",
+//         "function": "main.insertRedisKey.func1"
+//       },
+//       "error": {
+//         "message": "permission denied",
+//         "type_name": "*errors.errorString",
+//         "syntax_representation": "&errors.errorString{s:\"permission denied\"}"
 //       }
 //     }
 //   ]
